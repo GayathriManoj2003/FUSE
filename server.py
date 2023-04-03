@@ -5,6 +5,7 @@ import pickle
 from window_config import *
 from _thread import start_new_thread
 from player import Player
+from game import Game
 
 server = server_address
 port = 5555
@@ -12,77 +13,82 @@ port = 5555
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.bind( (server, port) )
 
+# games dictionary:
+games = {}
+connected = set()
+
+# no. of clients connected
+idCount = 0
+
 s.listen()
 print("Server Running.")
 print("Waiting for a connection...")
 
-width = 40
-height = 60
-vel = 1
-ini_pos = [(width + vel, height + vel), (width + vel, height + 3*vel)]
-
-players = [ Player(0, 0, vel, width, height, (255, 0, 255)), Player(0, 0, vel, width, height, (255, 255, 0))]
-
-def rand_rect(width,height, vel):
-    x = random.randint(width + vel, screen_width - width - vel)
-    y = random.randint(height + vel, screen_height - height - vel)
-    return x , y
-
-def threaded_client(conn, player):
-    global target
-    global currentPlayer
-
-    # busy wait
-    while currentPlayer < 2:
-        pass
-
-    players[player].x, players[player].y = ini_pos[player][0], ini_pos[player][1]
-    conn.send(pickle.dumps( (players[player], target) ))
-
-    while True:
+def threaded_client(conn, player, gameID):
+    global idCount
+    # conn.send(pickle.dumps(games[gameID].players[player]))
+    conn.send(pickle.dumps((player, games[gameID])))
+    run = True
+    while run:
         try:
-            data = pickle.loads( conn.recv(2048))
-            players[player] = data
+            data = pickle.loads( conn.recv(4096) )
 
-            if not data:
-                print("Disconnected")
-                break
-            else:
-                reply = players[0] if player == 1 else players[1]
-            if (players[player].x, players[player].y) == target:
-                reply = "You Win :)"
-                conn.sendall(pickle.dumps(reply))
-                break
+            if gameID in games:
+                game = games[gameID]
 
-            elif (players[not player].x, players[not player].y) == target:
-                reply = "You Lose :("
-                conn.sendall(pickle.dumps(reply))
-                break
+                if not data:
+                    print("Disconnected")
+                    break
 
-            else:
-                conn.sendall(pickle.dumps(reply))
+                elif not game.connected():
+                    conn.sendall(pickle.dumps(game))
+                    continue
 
-        except Exception:
+                else:
+                    game.players[player] = data
+
+                    if game.hasHitTar(player):
+                        game.addWin(player)
+
+                        if game.complete:
+                            run = False
+                        else:
+                            game.getNewTar()
+
+                    games[gameID] = game
+                    conn.sendall(pickle.dumps(game))
+
+        except Exception as e:
+            print("here", e)
             break
 
-    print("Lost connection with player", currentPlayer)
+    print("Lost Connection")
+
+    try:
+        del games[gameID]
+        print("Closing Game", gameID)
+
+    except Exception:
+        pass
+
+    idCount -= 1
     conn.close()
-    currentPlayer -= 1
-    if currentPlayer == 0:
-        target = rand_rect(width, height, vel)
-
-global target
-target = rand_rect(width, height, vel)
-
-global currentPlayer
-currentPlayer = 0
 
 while True:
     conn, addr = s.accept() # accept any incoming connection
     print("Connected to: ", addr)
 
-    # busy wait
-    while currentPlayer >= 2:
-        pass
-    start_new_thread(threaded_client, (conn, currentPlayer))
-    currentPlayer += 1
+    idCount += 1
+    p = 0
+    gameID = (idCount - 1)// 2
+
+    # new game created
+    if idCount % 2 == 1:
+        games[gameID] = Game(gameID)
+
+    else:
+        games[gameID].ready = True
+        p = 1
+
+    print(p, gameID)
+    start_new_thread(threaded_client, (conn, p, gameID))
