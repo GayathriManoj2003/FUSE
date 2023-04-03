@@ -6,13 +6,13 @@ from window_config import *
 from _thread import start_new_thread
 from player import Player
 
-server = "192.168.100.198"
+server = server_address
 port = 5555
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.bind( (server, port) )
 
-s.listen(2)
+s.listen()
 print("Server Running.")
 print("Waiting for a connection...")
 
@@ -26,7 +26,6 @@ players = [ Player(0, 0, vel, width, height, (255, 0, 255)), Player(0, 0, vel, w
 def rand_rect(width,height, vel):
     x = random.randint(width + vel, screen_width - width - vel)
     y = random.randint(height + vel, screen_height - height - vel)
-    # return x - x%vel, y - y%vel
     return x , y
 
 def threaded_client(conn, player):
@@ -49,11 +48,7 @@ def threaded_client(conn, player):
                 print("Disconnected")
                 break
             else:
-                if player == 1:
-                    reply = players[0]
-                else:
-                    reply = players[1]
-
+                reply = players[0] if player == 1 else players[1]
             if (players[player].x, players[player].y) == target:
                 reply = "You Win :)"
                 conn.sendall(pickle.dumps(reply))
