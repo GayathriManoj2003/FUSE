@@ -22,6 +22,31 @@ def waitWindow(win):
     win.blit(text, (pos_x1, pos_y1))
     pygame.display.update()
 
+def winning(win):
+    win.fill((128, 128, 128))
+    
+    font = pygame.font.SysFont("comicsans", 60)
+    text = font.render("You Win", True, (255,0,255))
+    pos_x1 = (screen_width - text.get_width())// 2
+    pos_y1 = (screen_height- text.get_height())// 2
+    win.blit(text, (pos_x1, pos_y1))
+    pygame.display.update()
+    pygame.time.delay(3000)
+    menu_screen()
+
+def losing(win):
+    win.fill((128, 128, 128))
+    print("hi")
+    font = pygame.font.SysFont("comicsans", 60)
+    text = font.render("You Lose", True, (255,0,255))
+    pos_x1 = (screen_width - text.get_width())// 2
+    pos_y1 = (screen_height- text.get_height())// 2
+    win.blit(text, (pos_x1, pos_y1))
+    pygame.display.update()
+    pygame.time.delay(3000)
+    menu_screen()
+
+
 def main():
     global run
     global wins
@@ -82,10 +107,12 @@ def end_game(game, p):
     print("END GAME")
     print(game.wins)
     if game.wins[p] > game.wins[not p]:
-        print("You Win")
+        winning(win)
+        
 
     else:
-        print("You Lose")
+        losing(win)
+        
     # pygame.time.delay(800)
     # win.fill((0,0,0))
     # font = pygame.font.SysFont("impact", 50)
@@ -102,7 +129,7 @@ def end_game(game, p):
 
     # pygame.display.update()
     # pygame.time.delay(2000)
-    menu_screen()
+   
 
 def menu_screen():
     run = True
