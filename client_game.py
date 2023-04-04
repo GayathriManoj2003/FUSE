@@ -23,6 +23,9 @@ def waitWindow(win):
     pygame.display.update()
 
 def main():
+    global run
+    global wins
+    wins = [0, 0]
     run = True
     clock = pygame.time.Clock()
     n = Network()
@@ -32,53 +35,74 @@ def main():
 
     while run:
         clock.tick(60)
-        game = n.send(game.players[player])
 
-        if not game:
-            run = False
-            break
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                run = False
 
-        if game.connected():
-            if game.complete:
-                # end_game(game, p)
+        try:
+            game.players[player] = p
+            game = n.send(game.players[player])
+
+            if not game:
+                # print("here")
                 run = False
                 break
 
+            if game.connected():
+                if game.complete:
+                    end_game(game, player)
+                    run = False
+
+                else:
+                    p = game.players[player]
+                    p2 = game.players[not player]
+                    tar = game.tarX, game.tarY
+                    wins = game.wins
+                    redrawWindow(win, p, p2, tar)
+
+                    for event in pygame.event.get():
+                        if event.type == pygame.QUIT:
+                            run = False
+                            pygame.quit()
+
+                    p.move()
+                    redrawWindow(win, p, p2, tar)
+
             else:
-                p = game.players[player]
-                p2 = game.players[not player]
-                tar = game.tarX, game.tarY
-                redrawWindow(win, p, p2, tar)
+                waitWindow(win)
 
-                for event in pygame.event.get():
-                    if event.type == pygame.QUIT:
-                        run = False
-                        pygame.quit()
+        except Exception as e:
+            print(e)
+            run = False
+            break
 
-                p.move()
-                game.players[player] = p
-                redrawWindow(win, p, p2, tar)
+def end_game(game, p):
+    print("END GAME")
+    print(game.wins)
+    if game.wins[p] > game.wins[not p]:
+        print("You Win")
 
-        else:
-            waitWindow(win)
+    else:
+        print("You Lose")
+    # pygame.time.delay(800)
+    # win.fill((0,0,0))
+    # font = pygame.font.SysFont("impact", 50)
+    # colour = p.colour
+    # txtsurf = font.render("GAME COMPLETE.", True, (255, 255, 255))
+    # pos_x = (screen_width- txtsurf.get_width())// 2
+    # pos_y = (screen_height- txtsurf.get_height())// 2
+    # win.blit(txtsurf,(pos_x, pos_y))
 
-def end_game(obj, p):
-    pygame.time.delay(800)
-    win.fill((0,0,0))
-    font = pygame.font.SysFont("impact", 50)
-    colour = p.colour
-    txtsurf = font.render("GAME COMPLETE.", True, (255, 255, 255))
-    pos_x = (screen_width- txtsurf.get_width())// 2
-    pos_y = (screen_height- txtsurf.get_height())// 2
-    win.blit(txtsurf,(pos_x, pos_y))
+    # txtsurf1 = font.render(obj, True, colour)
+    # pos_x1 = (screen_width - txtsurf1.get_width())// 2
+    # pos_y1 = (screen_height- 3*txtsurf1.get_height())// 2
+    # win.blit(txtsurf1,(pos_x1, pos_y1))
 
-    txtsurf1 = font.render(obj, True, colour)
-    pos_x1 = (screen_width - txtsurf1.get_width())// 2
-    pos_y1 = (screen_height- 3*txtsurf1.get_height())// 2
-    win.blit(txtsurf1,(pos_x1, pos_y1))
-
-    pygame.display.update()
-    pygame.time.delay(2000)
+    # pygame.display.update()
+    # pygame.time.delay(2000)
+    menu_screen()
 
 def menu_screen():
     run = True

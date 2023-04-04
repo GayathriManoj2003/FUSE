@@ -11,7 +11,7 @@ class Game:
         self.height = height
         self.vel = vel
         self.curRound = 0
-        self.rounds = 5
+        self.rounds = 1
         self.complete = False
         self.tarX, self.tarY = self.genTar()
         self.players = [ Player(0, 0, vel, width, height, (255, 0, 255)),

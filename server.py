@@ -14,7 +14,11 @@ s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.bind( (server, port) )
 
 # games dictionary:
+global idCount
+global games
+global ack
 games = {}
+ack = {}
 connected = set()
 
 # no. of clients connected
@@ -25,24 +29,40 @@ print("Server Running.")
 print("Waiting for a connection...")
 
 def threaded_client(conn, player, gameID):
-    global idCount
     # conn.send(pickle.dumps(games[gameID].players[player]))
+    global games
+    global ack
     conn.send(pickle.dumps((player, games[gameID])))
     run = True
     while run:
         try:
             data = pickle.loads( conn.recv(4096) )
+            # print(player, "here1", gameID in games.keys())
 
-            if gameID in games:
+            if not data:
+                print("Disconnected")
+                break
+
+            if gameID not in games.keys():
+                print("Disconnected")
+                break
+
+            if gameID in games.keys():
                 game = games[gameID]
 
-                if not data:
-                    print("Disconnected")
-                    break
-
-                elif not game.connected():
+                if not game.connected():
                     conn.sendall(pickle.dumps(game))
                     continue
+
+                elif game.complete:
+                    if ack[gameID] == [True, True]:
+                        # print("Game", gameID, "Complete.")
+                        run = False
+                        break
+
+                    if not ack[gameID][player]:
+                        conn.sendall(pickle.dumps(game))
+                        ack[gameID][player] == True
 
                 else:
                     game.players[player] = data
@@ -50,32 +70,35 @@ def threaded_client(conn, player, gameID):
                     if game.hasHitTar(player):
                         game.addWin(player)
 
-                        if game.complete:
-                            run = False
-                        else:
+                        if not game.complete:
                             game.getNewTar()
+
+                    if game.complete:
+                        ack[gameID][player] = True
 
                     games[gameID] = game
                     conn.sendall(pickle.dumps(game))
 
         except Exception as e:
-            print("here", e)
             break
 
     print("Lost Connection")
 
     try:
         del games[gameID]
+        del ack[gameID]
         print("Closing Game", gameID)
 
     except Exception:
         pass
 
+    global idCount
     idCount -= 1
     conn.close()
 
 while True:
-    conn, addr = s.accept() # accept any incoming connection
+    # accept any incoming connection
+    conn, addr = s.accept()
     print("Connected to: ", addr)
 
     idCount += 1
@@ -88,6 +111,7 @@ while True:
 
     else:
         games[gameID].ready = True
+        ack[gameID] = [False, False]
         p = 1
 
     print(p, gameID)
