@@ -9,9 +9,6 @@ class Network:
         self.port = 5555
         self.addr = (self.server, self.port)
         self.p, self.game = self.connect()
-        # initial_msg = self.connect()
-        # self.p = initial_msg[0]
-        # self.tar = initial_msg[1]
 
     def connect(self):
         try:

@@ -1,10 +1,8 @@
 import socket
-import random
 import pickle
 
 from window_config import *
 from _thread import start_new_thread
-from player import Player
 from game import Game
 
 server = server_address
@@ -13,7 +11,6 @@ port = 5555
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.bind( (server, port) )
 
-# games dictionary:
 global idCount
 global games
 global ack
@@ -29,7 +26,6 @@ print("Server Running.")
 print("Waiting for a connection...")
 
 def threaded_client(conn, player, gameID):
-    # conn.send(pickle.dumps(games[gameID].players[player]))
     global games
     global ack
     conn.send(pickle.dumps((player, games[gameID])))
@@ -37,7 +33,6 @@ def threaded_client(conn, player, gameID):
     while run:
         try:
             data = pickle.loads( conn.recv(4096) )
-            # print(player, "here1", gameID in games.keys())
 
             if not data:
                 print("Disconnected")
@@ -56,7 +51,6 @@ def threaded_client(conn, player, gameID):
 
                 elif game.complete:
                     if ack[gameID] == [True, True]:
-                        # print("Game", gameID, "Complete.")
                         run = False
                         break
 
