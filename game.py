@@ -31,26 +31,16 @@ class Game:
         self.tarX, self.tarY = self.genTar()
 
     def hasHitTar(self, p):
-        t=[]
         t1=self.tarX-1
         t2=self.tarX+1
         t3=self.tarX-2
         t4=self.tarX+2
-        t.append(t1)
-        t.append(t2)
-        t.append(t3)
-        t.append(t4)
-        t.append(self.tarX)
-        r=[]
+        t = [t1, t2, t3, t4, self.tarX]
         r1=self.tarY-1
         r2=self.tarY+1
         r3=self.tarY-2
         r4=self.tarY+2
-        r.append(r1)
-        r.append(r2)
-        r.append(r3)
-        r.append(r4)
-        r.append(self.tarY)
+        r = [r1, r2, r3, r4, self.tarY]
         return ((self.players[p]).x in t) and ((self.players[p]).y in r)
 
     def addWin(self, p):
