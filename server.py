@@ -31,7 +31,10 @@ def rand_rect(width,height, vel):
 def threaded_client(conn, player):
     global target
     global currentPlayer
-
+    target1=(target[0],target[1]-1)
+    target2=(target[0],target[1]+1)
+    target3=(target[0]+1,target[1])
+    target4=(target[0]-1,target[1])
     # busy wait
     while currentPlayer < 2:
         pass
@@ -49,12 +52,12 @@ def threaded_client(conn, player):
                 break
             else:
                 reply = players[0] if player == 1 else players[1]
-            if (players[player].x, players[player].y) == target:
+            if( ((players[player].x, players[player].y) == target)or ((players[player].x, players[player].y) == target1)or ((players[player].x, players[player].y) == target2)or ((players[player].x, players[player].y) == target3)or((players[player].x, players[player].y) == target4)):
                 reply = "You Win :)"
                 conn.sendall(pickle.dumps(reply))
                 break
 
-            elif (players[not player].x, players[not player].y) == target:
+            elif (((players[not player].x, players[not player].y) == target)or((players[not player].x, players[not player].y) == target1)or((players[not player].x, players[not player].y) == target2)or((players[not player].x, players[not player].y) == target3)or((players[not player].x, players[not player].y) == target4)):
                 reply = "You Lose :("
                 conn.sendall(pickle.dumps(reply))
                 break
