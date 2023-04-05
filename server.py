@@ -1,10 +1,9 @@
 import socket
-import random
 import pickle
 
 from window_config import *
 from _thread import start_new_thread
-from player import Player
+from game import Game
 
 server = server_address
 port = 5555
@@ -12,80 +11,104 @@ port = 5555
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.bind( (server, port) )
 
+global idCount
+global games
+global ack
+games = {}
+ack = {}
+connected = set()
+
+# no. of clients connected
+idCount = 0
+
 s.listen()
 print("Server Running.")
 print("Waiting for a connection...")
 
-width = 40
-height = 60
-vel = 1
-ini_pos = [(width + vel, height + vel), (width + vel, height + 3*vel)]
-
-players = [ Player(0, 0, vel, width, height, (255, 0, 255)), Player(0, 0, vel, width, height, (255, 255, 0))]
-
-def rand_rect(width,height, vel):
-    x = random.randint(width + vel, screen_width - width - vel)
-    y = random.randint(height + vel, screen_height - height - vel)
-    return x , y
-
-def threaded_client(conn, player):
-    global target
-    global currentPlayer
-    target1=(target[0],target[1]-1)
-    target2=(target[0],target[1]+1)
-    target3=(target[0]+1,target[1])
-    target4=(target[0]-1,target[1])
-    # busy wait
-    while currentPlayer < 2:
-        pass
-
-    players[player].x, players[player].y = ini_pos[player][0], ini_pos[player][1]
-    conn.send(pickle.dumps( (players[player], target) ))
-
-    while True:
+def threaded_client(conn, player, gameID):
+    global games
+    global ack
+    conn.send(pickle.dumps((player, games[gameID])))
+    run = True
+    while run:
         try:
-            data = pickle.loads( conn.recv(2048))
-            players[player] = data
+            data = pickle.loads( conn.recv(4096) )
 
             if not data:
                 print("Disconnected")
                 break
-            else:
-                reply = players[0] if player == 1 else players[1]
-            if( ((players[player].x, players[player].y) == target)or ((players[player].x, players[player].y) == target1)or ((players[player].x, players[player].y) == target2)or ((players[player].x, players[player].y) == target3)or((players[player].x, players[player].y) == target4)):
-                reply = "You Win :)"
-                conn.sendall(pickle.dumps(reply))
+
+            if gameID not in games.keys():
+                print("Disconnected")
                 break
 
-            elif (((players[not player].x, players[not player].y) == target)or((players[not player].x, players[not player].y) == target1)or((players[not player].x, players[not player].y) == target2)or((players[not player].x, players[not player].y) == target3)or((players[not player].x, players[not player].y) == target4)):
-                reply = "You Lose :("
-                conn.sendall(pickle.dumps(reply))
-                break
+            if gameID in games.keys():
+                game = games[gameID]
 
-            else:
-                conn.sendall(pickle.dumps(reply))
+                if not game.connected():
+                    conn.sendall(pickle.dumps(game))
+                    continue
 
-        except Exception:
+
+                elif game.complete:
+                    if ack[gameID] == [True, True]:
+                        run = False
+                        break
+
+                    if not ack[gameID][player]:
+                        conn.sendall(pickle.dumps(game))
+                        ack[gameID][player] == True
+
+                else:
+                    game.players[player] = data
+
+                    if game.hasHitTar(player):
+                        game.addWin(player)
+
+                        if not game.complete:
+                            game.getNewTar()
+
+
+                    if game.complete:
+                        ack[gameID][player] = True
+
+                    games[gameID] = game
+                    conn.sendall(pickle.dumps(game))
+
+        except Exception as e:
             break
 
-    print("Lost connection with player", currentPlayer)
+    print("Lost Connection")
+
+    try:
+        del games[gameID]
+        del ack[gameID]
+        print("Closing Game", gameID)
+
+    except Exception:
+        pass
+
+    global idCount
+    idCount -= 1
     conn.close()
-    currentPlayer -= 1
-    if currentPlayer == 0:
-        target = rand_rect(width, height, vel)
-
-global target
-target = rand_rect(width, height, vel)
-
-global currentPlayer
-currentPlayer = 0
 
 while True:
-    conn, addr = s.accept() # accept any incoming connection
+    # accept any incoming connection
+    conn, addr = s.accept()
     print("Connected to: ", addr)
 
-    # busy wait
-    while currentPlayer >= 2:
-        pass
-    start_new_thread(threaded_client, (conn, currentPlayer))
-    currentPlayer += 1
+    idCount += 1
+    p = 0
+    gameID = (idCount - 1)// 2
+
+    # new game created
+    if idCount % 2 == 1:
+        games[gameID] = Game(gameID)
+
+    else:
+        games[gameID].ready = True
+        ack[gameID] = [False, False]
+        p = 1
+
+    print(p, gameID)
+    start_new_thread(threaded_client, (conn, p, gameID))

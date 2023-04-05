@@ -8,9 +8,7 @@ class Network:
         self.server = window_config.server_address
         self.port = 5555
         self.addr = (self.server, self.port)
-        initial_msg = self.connect()
-        self.p = initial_msg[0]
-        self.tar = initial_msg[1]
+        self.p, self.game = self.connect()
 
     def connect(self):
         try:
@@ -22,6 +20,9 @@ class Network:
     def getP(self):
         return self.p
 
+    def getG(self):
+        return self.game
+
     def getTar(self):
         return self.tar
 
@@ -29,5 +30,6 @@ class Network:
         try:
             self.client.send(pickle.dumps(data))
             return pickle.loads(self.client.recv(2048))
+
         except socket.error as e:
             print(e)
