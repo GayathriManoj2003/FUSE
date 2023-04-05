@@ -49,6 +49,7 @@ def threaded_client(conn, player, gameID):
                     conn.sendall(pickle.dumps(game))
                     continue
 
+
                 elif game.complete:
                     if ack[gameID] == [True, True]:
                         run = False
@@ -66,6 +67,7 @@ def threaded_client(conn, player, gameID):
 
                         if not game.complete:
                             game.getNewTar()
+
 
                     if game.complete:
                         ack[gameID][player] = True
